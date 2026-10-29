@@ -11,7 +11,7 @@
 
 uint16_t MOV = 0x22;   // MOV opcode: 0010 0010
 
-void get_register_name(uint8_t w, uint8_t breg, char *res){
+void decode_register(uint8_t w, uint8_t breg, char *res){
     static const char *regs8[] = {
         "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"
     };
@@ -56,8 +56,8 @@ int main(int argc, char *argv[]){
 
         uint8_t w = GET_W(op);
 
-        get_register_name(w, GET_REG(op), t_reg);
-        get_register_name(w, GET_RM(op), t_rm);
+        decode_register(w, GET_REG(op), t_reg);
+        decode_register(w, GET_RM(op), t_rm);
         
         if (GET_D(op)){
             fprintf(fdest, "mov %s, %s\n", t_reg, t_rm);
