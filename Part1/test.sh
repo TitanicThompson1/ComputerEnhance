@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gcc decode.c -o decode
+gcc decode_ai.c -o decode
 nasm $1 -o f1
 ./decode f1 >> f1.asm
 nasm f1.asm -o f2
