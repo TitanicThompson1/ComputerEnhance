@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#define BUFF_LEN 1056784
+#define BUFF_LEN 30
 
 const char LBRACKET = '{';
 const char RBRACKET = '}';
@@ -48,7 +48,7 @@ void load_buffer(FileBuffer* fb){
 }
 
 int peek_char(FileBuffer* fb, char* c){
-    if (fb->idx == BUFF_LEN){
+    if (fb->idx == BUFF_LEN - 1){
         load_buffer(fb);
     }
     if(fb->idx == fb->n){
@@ -100,7 +100,7 @@ int parse_number(FileBuffer* fb, double* out){
     char cur_c;
     while(true){
         if(peek_char(fb, &cur_c)) return 1;
-        if(is_digit(cur_c)){
+        if(is_digit(cur_c) || cur_c == '-'){
             if(get_char(fb, &number[i++])) return 1;
         }else 
             break;
@@ -240,11 +240,12 @@ int parse_json_element(FileBuffer* fb, JSONElement* out){
         if (get_char(fb, &cur_c)) return 1;
         if(parse_json_string(fb, true, (char **)&(out->val))) return 1;
         out->type = STR;
-    }else if (is_digit(cur_c)){
+    }else if (is_digit(cur_c) || cur_c == '-'){
         out->val = malloc(sizeof(double)); 
         if(parse_number(fb, out->val)) return 1;
         out->type = NUMBER;
     }else if (cur_c == LSBRACKET){
+        if(get_char(fb, &cur_c)) return 1;
         if(parse_json_list(fb, (JSONElement**)&(out->val), &out->n)) return 1;
         out->type = ARR;
     }else if (cur_c == LBRACKET){
@@ -268,11 +269,11 @@ int parse_json_list(FileBuffer* fb, JSONElement** out, size_t* n_out){
     char cur_c;
     *n_out = 0;
     bool has_trailing_comma=false, first=true;
-    if (get_char(fb, &cur_c)) return 1;
+    if (peek_char(fb, &cur_c)) return 1;
 
     while(cur_c != RSBRACKET){
         if(!has_trailing_comma && !first){
-            printf("Error in JSON schema: missing ',' at %i, got %c\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Error in JSON schema: missing ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
             return 1;
         }
         if (*n_out == size_out - 1){
@@ -293,16 +294,19 @@ int parse_json_list(FileBuffer* fb, JSONElement** out, size_t* n_out){
         first = false;
 
         if(skip_whitespaces_newline(fb)) return 1;
-        if (get_char(fb, &cur_c)) return 1;
-        if (cur_c == ','){
+        if(get_char(fb, &cur_c)) return 1;
+        if(cur_c == ','){
             has_trailing_comma = true;
             if(skip_whitespaces_newline(fb)) return 1;
         }
         else
             has_trailing_comma = false;
     }
+    if(*n_out == 0){
+        if(get_char(fb, &cur_c)) return 1;
+    }
     if(has_trailing_comma && !first){
-        printf("Error in JSON schema: extra ',' at %i, got %c\n", fb->idx, fb->buffer[fb->idx]);
+        printf("Error in JSON schema: extra ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
         return 1;
     }
     return 0;
@@ -330,7 +334,7 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
     bool has_trailing_comma=false, first=true;
     while(cur_c != RBRACKET){
         if(!has_trailing_comma && !first){
-            printf("Error in JSON schema: missing ',' at %i, got %c\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Error in JSON schema: missing ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
             return 1;
         }
         

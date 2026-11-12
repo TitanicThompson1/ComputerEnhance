@@ -37,13 +37,9 @@ int main(int argc, char** argv){
     fwrite(preamble, sizeof(char), sizeof(preamble) - 1, fdest);
 
     bool uniform = argv[1][0] == 'u';
-    short xmin, xmax, ymin, ymax;
-
-
 
     char pairs[256];
     int n = atoi(argv[3]), line_size;
-    char line_end[3];
     for (int i = 0; i < n; i++){
         double x0, x1, y0, y1;
         if (uniform){

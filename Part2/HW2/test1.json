@@ -1,0 +1,10 @@
+{
+    "pair": 1,
+    "name": "chef",
+    "empty": "",
+    "v": [1, {}, "2", []],
+    "obj": {
+        "race": "one",
+        "nested": {"hey": "Oi"}
+    }
+}
