@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#define BUFF_LEN 30
+#define BUFF_LEN 1056784
 
 const char LBRACKET = '{';
 const char RBRACKET = '}';
@@ -13,7 +13,7 @@ const char SEMICOLON = ':';
 const char LSBRACKET = '[';
 const char RSBRACKET = ']';
 
-const static uint8_t STR=0, NUMBER=1, ARR=2, ARR_OBJ=3;
+static uint8_t STR=0, NUMBER=1, ARR=2, ARR_OBJ=3;
 
 typedef struct 
 {
@@ -37,6 +37,10 @@ typedef struct
 
 bool is_digit(const char d){
     return d >= '0' && d <= '9';
+}
+
+double get_number(JSONElement ele){
+    return *((double*)ele.val);
 }
 
 void load_buffer(FileBuffer* fb){
@@ -90,7 +94,6 @@ int get_string(FileBuffer* fb, char** out){
     
     *out = malloc(i * sizeof(char));
     strcpy(*out, str);    
-    printf("Parsed string %s\n", *out);
     return 0; 
 }
 
@@ -119,8 +122,6 @@ int parse_number(FileBuffer* fb, double* out){
 
     number[i] = '\0'; 
     *out = atof(number);    
-    printf("Parsed number %f\n", *out);
-    
     return 0;
 }
 
@@ -149,7 +150,7 @@ void free_json_object(JSONField* fields, size_t n);
 void free_json_object_inner(JSONField* fields, size_t n);
 
 void free_json_object_inner(JSONField* fields, size_t n){
-    for(int i=0; i<n; i++){
+    for(size_t i = 0; i < n; i++){
         JSONField f = fields[i];
         free_json_element(f.ele);
         free(f.key);
@@ -161,7 +162,7 @@ void free_json_element(JSONElement ele){
         free(ele.val);
     }else if (ele.type == ARR){
         JSONElement* children = (JSONElement*)ele.val;
-        for (int i=0; i< ele.n; i++){
+        for (size_t i=0; i< ele.n; i++){
             free_json_element(children[i]);
         }
         free(children);
@@ -182,7 +183,7 @@ void print_json_list(JSONElement* eles, size_t n){
     for (size_t i = 0; i < n; i++){
         JSONElement ele = eles[i];
         if(ele.type == STR){
-            printf("'%s', ", ele.val);
+            printf("'%s', ", (char*)ele.val);
         }else if (ele.type == NUMBER){
             printf("%f, ", *(double*)(ele.val));
         }else if (ele.type == ARR){
@@ -208,7 +209,7 @@ void print_json_object(JSONField* fields, size_t n, size_t identation){
         JSONField f = fields[i];
         printf("%s%s: ", iden, f.key);
         if(f.ele.type == STR){
-            printf("'%s'\n", f.ele.val);
+            printf("'%s'\n", (char*)f.ele.val);
         }else if (f.ele.type == NUMBER){
             printf("%f\n", *(double*)(f.ele.val));
         }else if (f.ele.type == ARR){
@@ -252,7 +253,7 @@ int parse_json_element(FileBuffer* fb, JSONElement* out){
         if(parse_json_object(fb, (JSONField**)&(out->val), &out->n)) return 1;
         out->type = ARR_OBJ;
     }else{
-        printf("Invalid JSON schema at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
+        printf("Invalid JSON schema at %li, got '%c'\n", fb->idx, cur_c);
         return 1;
     }
     return 0;
@@ -273,7 +274,7 @@ int parse_json_list(FileBuffer* fb, JSONElement** out, size_t* n_out){
 
     while(cur_c != RSBRACKET){
         if(!has_trailing_comma && !first){
-            printf("Error in JSON schema: missing ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Error in JSON schema: missing ',' at %li, got '%c'\n", fb->idx, cur_c);
             return 1;
         }
         if (*n_out == size_out - 1){
@@ -306,7 +307,7 @@ int parse_json_list(FileBuffer* fb, JSONElement** out, size_t* n_out){
         if(get_char(fb, &cur_c)) return 1;
     }
     if(has_trailing_comma && !first){
-        printf("Error in JSON schema: extra ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
+        printf("Error in JSON schema: extra ',' at %li, got '%c'\n", fb->idx, cur_c);
         return 1;
     }
     return 0;
@@ -325,7 +326,7 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
     if (get_char(fb, &cur_c)) return 1;
 
     if (cur_c != LBRACKET){
-        printf("Invalid JSON schema at idx %i, got %c\n", fb->idx, fb->buffer[fb->idx]);
+        printf("Invalid JSON schema at idx %li, got %c\n", fb->idx, cur_c);
         return 1;
     }
     if(skip_whitespaces_newline(fb)) return 1;
@@ -334,12 +335,12 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
     bool has_trailing_comma=false, first=true;
     while(cur_c != RBRACKET){
         if(!has_trailing_comma && !first){
-            printf("Error in JSON schema: missing ',' at %i, got '%c'\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Error in JSON schema: missing ',' at %li, got '%c'\n", fb->idx, cur_c);
             return 1;
         }
         
         if (cur_c != '"'){
-            printf("Error in JSON schema: missing '\"' at %i, got %c\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Error in JSON schema: missing '\"' at %li, got %c\n", fb->idx, cur_c);
             return 1;
         }
         JSONField f;
@@ -348,7 +349,7 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
         if (get_char(fb, &cur_c)) return 1;
 
         if (cur_c != SEMICOLON){
-            printf("Invalid JSON schema at %i, got %s\n", fb->idx, fb->buffer[fb->idx]);
+            printf("Invalid JSON schema at %li, got %c\n", fb->idx, cur_c);
             return 1;
         }
         if(skip_whitespaces_newline(fb)) return 1;
@@ -369,12 +370,26 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
     }
 
     if(has_trailing_comma && !first){
-        printf("Error in JSON schema: extra ',' at %i, got %c", fb->idx, fb->buffer[fb->idx]);
+        printf("Error in JSON schema: extra ',' at %li, got %c", fb->idx, cur_c);
         exit(1);
     }
     return 0;
 }
 
+int parse_json_file(char* filename, JSONField** out_res, size_t* out_n){
+
+    FILE *fsource = fopen(filename, "r");
+    if (fsource == NULL){
+        printf("Error while opening file %s\n", filename);
+        return 1;
+    }
+
+    FileBuffer fb = { .fsource=fsource };
+    load_buffer(&fb);
+    
+    return parse_json_object(&fb, out_res, out_n);
+}
+/*
 int main(int argc, char **argv){
     if (argc != 2){
         printf("Usage: %s <filename>\n", argv[0]);
@@ -402,3 +417,4 @@ int main(int argc, char **argv){
     free_json_object(res, size_json);
     return err;
 }
+*/

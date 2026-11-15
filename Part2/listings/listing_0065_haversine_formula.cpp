@@ -16,6 +16,8 @@
 
 #include <math.h>
 
+static const double EarthRadius = 6372.8; 
+
 static double Square(double A)
 {
     double Result = (A*A);
