@@ -17,9 +17,9 @@ filename="../$1"
 basename="$(basename "${1%.*}")"
 
 # Debug build
-clang -std=c11 -g -Wall "$filename" -o "${basename}_dc"
+clang -std=c11 -g -Wall "$filename" -o "${basename}_dc" -lm
 
 # Release build (AVX2)
-clang -std=c11 -mavx2 -O3 -g -Wall "$filename" -o "${basename}_rc"
+clang -std=c11 -mavx2 -O3 -g -Wall "$filename" -o "${basename}_rc" -lm
 
 popd > /dev/null

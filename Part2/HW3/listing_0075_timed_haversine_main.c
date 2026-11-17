@@ -10,12 +10,21 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    u64 cpu_freq = EstimateCPUFrequency(), t1, t2, t3, t4;
+    u64 cpu_freq = EstimateCPUFrequency(), t1, t2, t3, t4, t5;
     JSONField* json_data;
     size_t n;
 
     t1 = ReadCPUTimer();
-    int err = parse_json_file(argv[1], &json_data, &n);
+    FILE *fsource = fopen(argv[1], "r");
+    if (fsource == NULL){
+        printf("Error while opening file %s\n", argv[1]);
+        return 1;
+    }
+
+    FileBuffer fb = { .fsource=fsource };
+    load_buffer(&fb);
+    
+    int err = parse_json_object(&fb, &json_data, &n);
     t2 = ReadCPUTimer();
     
     if(err){
@@ -31,6 +40,7 @@ int main(int argc, char** argv){
     JSONElement* pair_list = (JSONElement*)json_data[0].ele.val;    
     double sum = 0;
     t3 = ReadCPUTimer();
+    printf("Number of pairs: %ld\n", json_data[0].ele.n);
     for (size_t i = 0; i < json_data[0].ele.n; i++){
         if(pair_list[i].type != ARR_OBJ){
             printf("Invalid type for pair %li", i);
@@ -41,11 +51,18 @@ int main(int argc, char** argv){
         sum += ReferenceHaversine(get_number(cur_pair[0].ele), get_number(cur_pair[1].ele), get_number(cur_pair[2].ele), get_number(cur_pair[3].ele), EarthRadius);
     }
     t4 = ReadCPUTimer();
+    
+    free_json_object(json_data, n);
+    fclose(fsource);
+
+    t5 = ReadCPUTimer();
+
     printf("Medium haversine distance: %.16f\n", sum/json_data[0].ele.n);
 
-    double total_cycles = t4-t1;
+    double total_cycles = t5-t1;
     printf("Total time: %fms (CPU freq %lu)\n", total_cycles/cpu_freq, cpu_freq);
     printf("Parse: %ld (%.2f%%)\n",t2-t1, (t2-t1)/total_cycles*100);
     printf("Misc: %ld (%.2f%%)\n",t3-t2, (t3-t2)/total_cycles*100);
     printf("Sum: %ld (%.2f%%)\n",t4-t3, (t4-t3)/total_cycles*100);
+    printf("Cleanup: %ld (%.2f%%)\n",t5-t4, (t5-t4)/total_cycles*100);
 }

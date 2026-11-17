@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <search.h>
@@ -376,19 +378,12 @@ int parse_json_object(FileBuffer* fb, JSONField** out, size_t* n_out){
     return 0;
 }
 
-int parse_json_file(char* filename, JSONField** out_res, size_t* out_n){
-
-    FILE *fsource = fopen(filename, "r");
-    if (fsource == NULL){
-        printf("Error while opening file %s\n", filename);
-        return 1;
-    }
-
+int parse_json(FILE* fsource, JSONField** out, size_t* n_out){
     FileBuffer fb = { .fsource=fsource };
     load_buffer(&fb);
-    
-    return parse_json_object(&fb, out_res, out_n);
+    return parse_json_object(&fb, out, n_out);
 }
+
 /*
 int main(int argc, char **argv){
     if (argc != 2){
